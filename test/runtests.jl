@@ -6,5 +6,12 @@ using Aqua: Aqua
     @testset "Code quality (Aqua.jl)" begin
         Aqua.test_all(ParseUnparse)
     end
-    # Write your tests here.
+end
+
+module TestOptionals
+    include("runtests_optionals.jl")
+end
+
+module TestSymbolGraphs
+    include("runtests_symbol_graphs.jl")
 end
