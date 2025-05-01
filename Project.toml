@@ -1,0 +1,7 @@
+name = "ParseUnparse"
+uuid = "caaa8bb7-a042-43a4-a1c9-7594415e1478"
+authors = ["Neven Sajko <s@purelymail.com> and contributors"]
+version = "1.0.0-DEV"
+
+[compat]
+julia = "1.9"
