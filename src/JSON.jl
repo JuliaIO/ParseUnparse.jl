@@ -1,0 +1,3 @@
+module JSON
+    # XXX
+end
