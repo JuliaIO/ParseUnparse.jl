@@ -1,6 +1,5 @@
-using ParseUnparse
-using ParseUnparse.Common.Optionals
-using ParseUnparse.Common.SymbolGraphs
+using ParseUnparse.Optionals
+using ParseUnparse.SymbolGraphs
 using Test
 
 const ParsingTableDefault = Dict{Tuple{K, K}, Vector{K}} where {K}
@@ -225,23 +224,23 @@ const strong_ll_1_parser_data = Dict(  # https://mdaines.github.io/grammophone
                 excluded = languages[language_key]["excluded_examples"]
                 for parser_data ∈ strong_ll_1_parser_data[language_key]
                     parser = (@inferred StrongLL1TableDrivenParser{Debug, Nothing}(parser_data.start_symbol, parser_data.table, parser_data.table_end_marker))::StrongLL1TableDrivenParser{Debug, Nothing}
-                    @test (@inferred ParseUnparse.Common.SymbolGraphs.parse(parser, string_to_toks(first(included)))) isa Tuple{SymbolGraphRooted{Char, Nothing}, Optional{Tuple{SymbolGraphNodeIdentity, Optional{Tuple{Nothing, Char}}}}}
+                    @test (@inferred SymbolGraphs.parse(parser, string_to_toks(first(included)))) isa Tuple{SymbolGraphRooted{Char, Nothing}, Optional{Tuple{SymbolGraphNodeIdentity, Optional{Tuple{Nothing, Char}}}}}
                     for s ∈ included  # parse-unparse
-                        @test let (tree, _) = ParseUnparse.Common.SymbolGraphs.parse(parser, string_to_toks(s))
+                        @test let (tree, _) = SymbolGraphs.parse(parser, string_to_toks(s))
                             function f(io::IO)
                                 function g(::Any, kind::Char)
                                     print(io, kind)
                                 end
-                                ParseUnparse.Common.SymbolGraphs.unparse(g, tree)
+                                SymbolGraphs.unparse(g, tree)
                             end
                             s == (@inferred sprint(f))::AbstractString
                         end
                     end
                     for s ∈ included
-                        @test isempty(ParseUnparse.Common.SymbolGraphs.parse(parser, string_to_toks(s))[2])
+                        @test isempty(SymbolGraphs.parse(parser, string_to_toks(s))[2])
                     end
                     for s ∈ excluded
-                        @test !isempty(ParseUnparse.Common.SymbolGraphs.parse(parser, string_to_toks(s))[2])
+                        @test !isempty(SymbolGraphs.parse(parser, string_to_toks(s))[2])
                     end
                 end
             end

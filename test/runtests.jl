@@ -14,6 +14,18 @@ module TestImplementAbstractTrees
     include("runtests_implement_abstract_trees.jl")
 end
 
+module TestAbstractParserIdents
+    include("runtests_abstract_parser_idents.jl")
+end
+
+module TestKindConstruction
+    include("runtests_kind_construction.jl")
+end
+
+module TestLexingUtil
+    include("runtests_lexing_util.jl")
+end
+
 module TestAqua
     include("runtests_aqua.jl")
 end

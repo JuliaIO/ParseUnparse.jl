@@ -1,5 +1,4 @@
-using ParseUnparse
-using ParseUnparse.Common.ContextFreeGrammarUtil
+using ParseUnparse.ContextFreeGrammarUtil
 using Test
 
 @testset "`ContextFreeGrammarUtil`" begin
@@ -51,5 +50,9 @@ using Test
         @test singleton_language_tables == @inferred make_parsing_table_strong_ll_1(singleton_language_grammar_clean, 'S')
         @test singleton_language_tables == @inferred make_parsing_table_strong_ll_1(singleton_language_grammar_unreachable, 'S')
         @test even_paired_language_tables == @inferred make_parsing_table_strong_ll_1(even_paired_language_grammar_clean, 'S')
+    end
+    @testset "CFG not LL(1)" begin
+        left_recursive_grammar_clean = Dict{Char, Set{Vector{Char}}}(('S' => Set(([], ['S', 't'])),))
+        @test_throws ArgumentError make_parsing_table_strong_ll_1(left_recursive_grammar_clean, 'S')
     end
 end

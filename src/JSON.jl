@@ -1,3 +1,0 @@
-module JSON
-    # XXX
-end

@@ -1,6 +1,5 @@
-using ParseUnparse
-using ParseUnparse.Common.ContextFreeGrammarUtil
-using ParseUnparse.Common.SymbolGraphs
+using ParseUnparse.ContextFreeGrammarUtil
+using ParseUnparse.SymbolGraphs
 using Test
 using AbstractTrees: AbstractTrees
 
@@ -36,15 +35,15 @@ end
 @testset "implement the AbstractTrees interface" begin
     @testset "example_string: $(example.string)" for example ∈ dyck_language_examples
         @test let toks = string_to_toks(example.string)
-            (tree, _) = ParseUnparse.Common.SymbolGraphs.parse(dyck_language_parser, toks)
+            (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
             example.leaves == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.Leaves(tree)))
         end
         @test let toks = string_to_toks(example.string)
-            (tree, _) = ParseUnparse.Common.SymbolGraphs.parse(dyck_language_parser, toks)
+            (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
             example.preorder == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.PreOrderDFS(tree)))
         end
         @test let toks = string_to_toks(example.string)
-            (tree, _) = ParseUnparse.Common.SymbolGraphs.parse(dyck_language_parser, toks)
+            (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
             example.postorder == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.PostOrderDFS(tree)))
         end
     end
