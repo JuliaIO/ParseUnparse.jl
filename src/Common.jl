@@ -50,6 +50,382 @@ module Common
             nothing
         end
     end
+    module ContextFreeGrammarUtil
+        export
+            cleaned_up_grammar_copy, copy_with_deduplicated_rules_identity,
+            first_sets, follow_sets, endable_set,
+            make_parsing_table_strong_ll_1
+        using ..Optionals
+        const ContextFreeGrammar = AbstractDict{
+            GrammarSymbolKind,  # left-hand side of a grammar rule: nonterminal symbol
+            RightHandSides,  # the right-hand sides corresponding to the left-hand side
+        } where {
+            GrammarSymbolKind,
+            RightHandSides <: AbstractSet{<:AbstractVector{GrammarSymbolKind}},
+        }
+        const CFGFollowSets = AbstractDict{
+            GrammarSymbolKind,  # nonterminal symbol
+            FollowSet,  # terminal symbols
+        } where {
+            GrammarSymbolKind,
+            FollowSet <: AbstractSet{GrammarSymbolKind},
+        }
+        const CFGFirstSets = AbstractDict{
+            GrammarSymbolKind,  # nonterminal symbol
+            FirstSet,  # strings of terminal symbols of length less than or equal to one
+        } where {
+            GrammarSymbolKind,
+            FirstSet <: AbstractSet{Optional{GrammarSymbolKind}},
+        }
+        const Vec = (@isdefined Memory) ? Memory : Vector
+        function copy_with_only_productive_rules!(
+            dst::ContextFreeGrammar{GrammarSymbolKind},
+            src::ContextFreeGrammar{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            modified = false
+            nonterminal_symbols = keys(src)
+            function is_immediately_productive(sym::GrammarSymbolKind)
+                is_terminal = sym ∉ nonterminal_symbols
+                is_terminal || sym ∈ keys(dst)
+            end
+            # Mark as productive each rule all of whose RHS members are productive.
+            for nonterminal ∈ nonterminal_symbols
+                for sentential_form ∈ src[nonterminal]
+                    if all(is_immediately_productive, sentential_form)
+                        # this rule is productive
+                        if nonterminal ∉ keys(dst)
+                            dst[nonterminal] = Set{Vec{GrammarSymbolKind}}()
+                        end
+                        let rules = dst[nonterminal]
+                            if sentential_form ∉ rules
+                                push!(rules, sentential_form)
+                                modified = true
+                            end
+                        end
+                    end
+                end
+            end
+            modified
+        end
+        function copy_with_only_productive_rules(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
+            # Everything except terminal symbols and ϵ-rules is initially assumed to be nonproductive.
+            ret = Dict{GrammarSymbolKind, Set{Vec{GrammarSymbolKind}}}()
+            while copy_with_only_productive_rules!(ret, grammar) end
+            ret
+        end
+        function copy_with_only_reachable_nonterminals!(
+            reachable_nonterminals::AbstractSet{GrammarSymbolKind},
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            reachable_nonterminals_next = copy(reachable_nonterminals)
+            nonterminal_symbols = keys(grammar)
+            # Mark as reachable each nonterminal appearing on the RHS of a rule where the LHS is reachable.
+            for reachable_nonterminal ∈ reachable_nonterminals
+                for sentential_form ∈ grammar[reachable_nonterminal]
+                    for sym ∈ sentential_form
+                        if sym ∈ nonterminal_symbols
+                            push!(reachable_nonterminals_next, sym)
+                        end
+                    end
+                end
+            end
+            modified = reachable_nonterminals != reachable_nonterminals_next
+            union!(reachable_nonterminals, reachable_nonterminals_next)
+            modified
+        end
+        function copy_with_only_reachable_nonterminals(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind,
+        ) where {GrammarSymbolKind}
+            reachable_nonterminals = Set{GrammarSymbolKind}()
+            nonterminal_symbols = keys(grammar)
+            if start_symbol ∈ nonterminal_symbols
+                # Start by marking the start symbol as reachable. All other symbols are initially assumed to be unreachable.
+                push!(reachable_nonterminals, start_symbol)
+                while copy_with_only_reachable_nonterminals!(reachable_nonterminals, grammar) end
+            end
+            ret = Dict{GrammarSymbolKind, Set{Vec{GrammarSymbolKind}}}()
+            function f(sym::GrammarSymbolKind)
+                ret[sym] = copy(grammar[sym])
+            end
+            foreach(f, reachable_nonterminals)
+            ret
+        end
+        """
+            cleaned_up_grammar_copy(grammar, start_symbol)
+
+        Return a cleaned-up copy of the given CFG, where all nonterminals are reachable from the start symbol and all rules are productive.
+        """
+        function cleaned_up_grammar_copy(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind,
+        ) where {GrammarSymbolKind}
+            copy_with_only_reachable_nonterminals(copy_with_only_productive_rules(grammar), start_symbol)
+        end
+        function get_equal_element(x, s)  # https://discourse.julialang.org/t/get-an-equal-element-of-a-set-get-an-equal-key-of-a-dictionary/128779
+            for e ∈ s
+                if x == e
+                    return e
+                end
+            end
+            throw(ArgumentError("x ∉ s"))
+        end
+        function copy_with_deduplicated_rules_identity(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
+            right_hand_sides = Set{Vec{GrammarSymbolKind}}()
+            for (_, rules) ∈ grammar
+                for rhs ∈ rules
+                    push!(right_hand_sides, copy(rhs))
+                end
+            end
+            ret = Dict{GrammarSymbolKind, Set{Vec{GrammarSymbolKind}}}()
+            nonterminal_symbols = keys(grammar)
+            function ini(sym::GrammarSymbolKind)
+                ret[sym] = Set{Vec{GrammarSymbolKind}}()
+            end
+            foreach(ini, nonterminal_symbols)
+            for (lhs, rules) ∈ grammar
+                for rhs ∈ rules
+                    dedup = get_equal_element(rhs, right_hand_sides)
+                    push!(ret[lhs], dedup)
+                end
+            end
+            ret
+        end
+        function first_set(
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            sentential_form::AbstractVector{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            nonterminal_symbols = keys(firsts)
+            ϵ = Optional{GrammarSymbolKind}()
+            ret = push!(Set{Optional{GrammarSymbolKind}}(), ϵ)
+            for sym ∈ sentential_form
+                if ϵ ∉ ret
+                    break
+                end
+                delete!(ret, ϵ)
+                if sym ∈ nonterminal_symbols
+                    # `sym` is not terminal
+                    union!(ret, firsts[sym])
+                else
+                    # `sym` is terminal
+                    push!(ret, Optional{GrammarSymbolKind}(sym))
+                end
+            end
+            ret
+        end
+        function first_sets!(
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            rule::AbstractVector{GrammarSymbolKind},  # RHS
+            nonterminal_symbol::GrammarSymbolKind,    # LHS
+        ) where {GrammarSymbolKind}
+            fir = firsts[nonterminal_symbol]
+            fir_next = first_set(firsts, rule)
+            modified = fir_next ⊈ fir
+            union!(fir, fir_next)
+            modified
+        end
+        function first_sets!(
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            nonterminal_symbol::GrammarSymbolKind,
+        ) where {GrammarSymbolKind}
+            modified = false
+            sentential_forms = grammar[nonterminal_symbol]
+            for rule ∈ sentential_forms
+                modified |= first_sets!(firsts, rule, nonterminal_symbol)
+            end
+            modified
+        end
+        function first_sets!(
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            modified = false
+            nonterminal_symbols = keys(grammar)
+            for nonterminal ∈ nonterminal_symbols
+                modified |= first_sets!(firsts, grammar, nonterminal)
+            end
+            modified
+        end
+        function first_sets(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
+            ret = Dict{GrammarSymbolKind, Set{Optional{GrammarSymbolKind}}}()
+            function ini(sym::GrammarSymbolKind)
+                ret[sym] = Set{Optional{GrammarSymbolKind}}()
+            end
+            nonterminal_symbols = keys(grammar)
+            # Start by initializing the sets as empty.
+            foreach(ini, nonterminal_symbols)
+            while first_sets!(ret, grammar) end
+            ret
+        end
+        function endable_set!(
+            endables::AbstractSet{GrammarSymbolKind},
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            endables_next = copy(endables)
+            nonterminal_symbols = keys(grammar)
+            ϵ = Optional{GrammarSymbolKind}()
+            for endable ∈ endables
+                for rule ∈ grammar[endable]
+                    for sym ∈ Iterators.reverse(rule)
+                        sym_is_nonterminal = sym ∈ nonterminal_symbols
+                        if sym_is_nonterminal
+                            push!(endables_next, sym)
+                        end
+                        is_nullable = sym_is_nonterminal && (ϵ ∈ firsts[sym])
+                        if !is_nullable
+                            break
+                        end
+                    end
+                end
+            end
+            modified = endables != endables_next
+            union!(endables, endables_next)
+            modified
+        end
+        function endable_set(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind,
+        ) where {GrammarSymbolKind}
+            ret = Set{GrammarSymbolKind}()
+            nonterminal_symbols = keys(grammar)
+            if start_symbol ∈ nonterminal_symbols
+                # Start by marking the start symbol as endable. All other symbols are initially assumed not to be endable.
+                push!(ret, start_symbol)
+                while endable_set!(ret, grammar, firsts) end
+            end
+            ret
+        end
+        function new_follow_sets(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
+            ret = Dict{GrammarSymbolKind, Set{GrammarSymbolKind}}()
+            function ini(sym::GrammarSymbolKind)
+                ret[sym] = Set{Optional{GrammarSymbolKind}}()
+            end
+            nonterminal_symbols = keys(grammar)
+            # Start by initializing the sets as empty.
+            foreach(ini, nonterminal_symbols)
+            ret
+        end
+        function follow_sets!(
+            follows::CFGFollowSets{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            follows_next = new_follow_sets(grammar)
+            function ini(sym::GrammarSymbolKind)
+                union!(follows_next[sym], follows[sym])
+            end
+            nonterminal_symbols = keys(grammar)
+            # Start by copying the FOLLOW sets.
+            foreach(ini, nonterminal_symbols)
+            ϵ = Optional{GrammarSymbolKind}()
+            for nonterminal_symbol ∈ nonterminal_symbols
+                for rule ∈ grammar[nonterminal_symbol]
+                    for i ∈ eachindex(rule)
+                        sym = rule[i]
+                        if sym ∈ nonterminal_symbols
+                            let fol = follows_next[sym]
+                                rest = @view rule[(i + 1):end]
+                                fir = first_set(firsts, rest)
+                                # add all terminal symbols from FIRST(rest) to FOLLOW(sym)
+                                for s ∈ fir
+                                    if !isempty(s)
+                                        push!(fol, only(s))
+                                    end
+                                end
+                                # if rest derives ϵ, add all symbols from FOLLOW(nonterminal_symbol) to FOLLOW(sym)
+                                if ϵ ∈ fir
+                                    union!(fol, follows_next[nonterminal_symbol])
+                                end
+                            end
+                        end
+                    end
+                end
+            end
+            modified = follows != follows_next
+            function upd(sym::GrammarSymbolKind)
+                union!(follows[sym], follows_next[sym])
+            end
+            foreach(upd, nonterminal_symbols)
+            modified
+        end
+        function follow_sets(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            ret = new_follow_sets(grammar)
+            while follow_sets!(ret, firsts, grammar) end
+            ret
+        end
+        function make_parsing_table_strong_ll_1_impl_3(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            follows::CFGFollowSets{GrammarSymbolKind},
+            endables::AbstractSet{GrammarSymbolKind},
+        ) where {GrammarSymbolKind}
+            table = Dict{Tuple{GrammarSymbolKind, GrammarSymbolKind}, Vec{GrammarSymbolKind}}()
+            table_end_marker = Dict{GrammarSymbolKind, Vec{GrammarSymbolKind}}()
+            function add_checked!(tab::AbstractDict, key, rhs::AbstractVector{GrammarSymbolKind})
+                if haskey(tab, key) && (rhs !== tab[key])
+                    throw(ArgumentError("conflict detected, grammar not LL(1)"))
+                end
+                tab[key] = rhs
+            end
+            function add_entry!(key::Tuple{GrammarSymbolKind, GrammarSymbolKind}, rhs::AbstractVector{GrammarSymbolKind})
+                add_checked!(table, key, rhs)
+            end
+            function add_entry_end_marker!(key::GrammarSymbolKind, rhs::AbstractVector{GrammarSymbolKind})
+                add_checked!(table_end_marker, key, rhs)
+            end
+            ϵ = Optional{GrammarSymbolKind}()
+            for (lhs, rules) ∈ grammar
+                fol = follows[lhs]
+                lhs_is_endable = lhs ∈ endables
+                for rhs ∈ rules
+                    fir = first_set(firsts, rhs)
+                    for s ∈ fir
+                        if !isempty(s)
+                            add_entry!((lhs, only(s)), rhs)
+                        end
+                    end
+                    if ϵ ∈ fir
+                        for sym ∈ fol
+                            add_entry!((lhs, sym), rhs)
+                        end
+                        if lhs_is_endable
+                            add_entry_end_marker!(lhs, rhs)
+                        end
+                    end
+                end
+            end
+            (table, table_end_marker)
+        end
+        function make_parsing_table_strong_ll_1_impl_2(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            firsts::CFGFirstSets{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind
+        ) where {GrammarSymbolKind}
+            fol = follow_sets(grammar, firsts)
+            en = endable_set(grammar, firsts, start_symbol)
+            make_parsing_table_strong_ll_1_impl_3(grammar, firsts, fol, en)
+        end
+        function make_parsing_table_strong_ll_1_impl_1(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind
+        ) where {GrammarSymbolKind}
+            fir = first_sets(grammar)
+            make_parsing_table_strong_ll_1_impl_2(grammar, fir, start_symbol)
+        end
+        function make_parsing_table_strong_ll_1(
+            grammar::ContextFreeGrammar{GrammarSymbolKind},
+            start_symbol::GrammarSymbolKind
+        ) where {GrammarSymbolKind}
+            cleaned_grammar = copy_with_deduplicated_rules_identity(cleaned_up_grammar_copy(grammar, start_symbol))
+            make_parsing_table_strong_ll_1_impl_1(cleaned_grammar, start_symbol)
+        end
+    end
     module SymbolGraphs
         export
             SymbolGraphNodeIdentity, make_node_vec,
