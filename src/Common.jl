@@ -163,19 +163,11 @@ module Common
         ) where {GrammarSymbolKind}
             copy_with_only_reachable_nonterminals(copy_with_only_productive_rules(grammar), start_symbol)
         end
-        function get_equal_element(x, s)  # https://discourse.julialang.org/t/get-an-equal-element-of-a-set-get-an-equal-key-of-a-dictionary/128779
-            for e ∈ s
-                if x == e
-                    return e
-                end
-            end
-            throw(ArgumentError("x ∉ s"))
-        end
         function copy_with_deduplicated_rules_identity(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
-            right_hand_sides = Set{Vec{GrammarSymbolKind}}()
+            right_hand_sides = Dict{Vec{GrammarSymbolKind}, Nothing}()  # https://discourse.julialang.org/t/get-an-equal-element-of-a-set-get-an-equal-key-of-a-dictionary/128779
             for (_, rules) ∈ grammar
                 for rhs ∈ rules
-                    push!(right_hand_sides, copy(rhs))
+                    right_hand_sides[copy(rhs)] = nothing
                 end
             end
             ret = Dict{GrammarSymbolKind, Set{Vec{GrammarSymbolKind}}}()
@@ -186,7 +178,7 @@ module Common
             foreach(ini, nonterminal_symbols)
             for (lhs, rules) ∈ grammar
                 for rhs ∈ rules
-                    dedup = get_equal_element(rhs, right_hand_sides)
+                    dedup = getkey(right_hand_sides, rhs, nothing)
                     push!(ret[lhs], dedup)
                 end
             end
