@@ -1,17 +1,14 @@
 module Common
     module Optionals
         export Optional
-        mutable struct Mutable{P}
-            const v::P
-        end
         struct Optional{P} <: AbstractVector{P}
-            v::Mutable{P}
+            defined::Bool
+            v::P
             function Optional{P}() where {P}
-                new{P}()
+                new{P}(false, )
             end
             function Optional{P}(v::P) where {P}
-                m = Mutable(v)
-                new{P}(m)
+                new{P}(true, v)
             end
         end
         function Optional(v)
@@ -24,7 +21,7 @@ module Common
             throw(ArgumentError("no properties"))
         end
         function is_not_empty(o::Optional)
-            isdefined(o, 1)
+            getfield(o, 1)
         end
         function Base.isempty(o::Optional)
             !is_not_empty(o)
@@ -40,9 +37,7 @@ module Common
             if isempty(o) || !isone(i)
                 throw(BoundsError(o, i))
             end
-            sym = :v
-            m = getfield(o, sym)
-            getfield(m, sym)
+            getfield(o, 2)
         end
         function Base.iterate(o::Optional)
             if is_not_empty(o)
