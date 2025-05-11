@@ -434,6 +434,7 @@ module Common
             StrongLL1TableDrivenParser,
             validate_symbol_graph
         using ..Optionals
+        using AbstractTrees: AbstractTrees
         """
             SymbolGraphNodeIdentity()
 
@@ -804,6 +805,9 @@ module Common
                 ret = validate_symbol_graph(ret)
             end
             (ret, error_status)
+        end
+        function AbstractTrees.children(tree::SymbolGraphRooted)
+            root_children(tree)
         end
     end
 end

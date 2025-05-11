@@ -10,6 +10,10 @@ module TestSymbolGraphs
     include("runtests_symbol_graphs.jl")
 end
 
+module TestImplementAbstractTrees
+    include("runtests_implement_abstract_trees.jl")
+end
+
 module TestAqua
     include("runtests_aqua.jl")
 end
