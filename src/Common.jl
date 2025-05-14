@@ -1,4 +1,5 @@
 module Common
+    export ContextFreeGrammarUtil, SymbolGraphs, AbstractParserIdents, KindConstruction, LexingUtil
     module Optionals
         export Optional
         struct Optional{P} <: AbstractVector{P}
@@ -428,6 +429,7 @@ module Common
     end
     module SymbolGraphs
         export
+            parse, unparse,
             SymbolGraphNodeIdentity, make_node_vec,
             SymbolGraphRootless,
             SymbolGraphRooted,
