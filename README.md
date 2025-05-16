@@ -19,7 +19,7 @@ Some dependent packages:
 
     * WKT-CRS: [ParseUnparseWKTCRS](https://github.com/nsajko/ParseUnparseWKTCRS.jl)
 
-## Usage example: getting a parser for the *Dyck language*
+## Usage example: a parser for the *Dyck language*
 
 The *Dyck language* is the set of balanced strings of parentheses. Example words in the Dyck language: `()`, `(())`, `()()`, `()(())`. Here's how to get a parser for the Dyck language:
 
