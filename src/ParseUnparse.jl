@@ -47,7 +47,7 @@ module ParseUnparse
     end
     module ContextFreeGrammarUtil
         export
-            cleaned_up_grammar_copy, copy_with_deduplicated_rules_identity,
+            cleaned_up_grammar_copy,
             first_sets, follow_sets, endable_set,
             make_parsing_table_strong_ll_1
         using ..Optionals
