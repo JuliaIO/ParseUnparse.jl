@@ -45,12 +45,22 @@ module ParseUnparse
             nothing
         end
     end
+    """
+        ContextFreeGrammarUtil::Module
+
+    Functionality for analysing context-free grammars (CFG), and creating parsing tables from grammars.
+    """
     module ContextFreeGrammarUtil
         export
             cleaned_up_grammar_copy,
             first_sets, follow_sets, endable_set,
             make_parsing_table_strong_ll_1
         using ..Optionals
+        """
+            ContextFreeGrammar::Type{<:AbstractDict}
+
+        CFG productions.
+        """
         const ContextFreeGrammar = AbstractDict{
             GrammarSymbolKind,  # left-hand side of a grammar rule: nonterminal symbol
             RightHandSides,  # the right-hand sides corresponding to the left-hand side
@@ -72,7 +82,7 @@ module ParseUnparse
             GrammarSymbolKind,
             FirstSet <: AbstractSet{Optional{GrammarSymbolKind}},
         }
-        const Vec = (@isdefined Memory) ? Memory : Vector
+        const Vec = (@isdefined Memory) ? Memory : Vector  # performance optimization: use `Memory` when available!
         function copy_with_only_productive_rules!(
             dst::ContextFreeGrammar{GrammarSymbolKind},
             src::ContextFreeGrammar{GrammarSymbolKind},
@@ -157,6 +167,11 @@ module ParseUnparse
         ) where {GrammarSymbolKind}
             copy_with_only_reachable_nonterminals(copy_with_only_productive_rules(grammar), start_symbol)
         end
+        """
+            copy_with_deduplicated_rules_identity(grammar)
+
+        Return a copy of the given grammar with some deduplication. Meant as a performance optimization, to decrease memory usage and improve cache locality.
+        """
         function copy_with_deduplicated_rules_identity(grammar::ContextFreeGrammar{GrammarSymbolKind}) where {GrammarSymbolKind}
             right_hand_sides = Dict{Vec{GrammarSymbolKind}, Nothing}()  # https://discourse.julialang.org/t/get-an-equal-element-of-a-set-get-an-equal-key-of-a-dictionary/128779
             for (_, rules) ∈ grammar
@@ -405,6 +420,11 @@ module ParseUnparse
             fir = first_sets(grammar)
             make_parsing_table_strong_ll_1_impl_2(grammar, fir, start_symbol)
         end
+        """
+            make_parsing_table_strong_ll_1(grammar, start_symbol)
+
+        Make a strong-LL(1) parsing table from an LL(1) grammar.
+        """
         function make_parsing_table_strong_ll_1(
             grammar::ContextFreeGrammar{GrammarSymbolKind},
             start_symbol::GrammarSymbolKind
@@ -413,6 +433,11 @@ module ParseUnparse
             make_parsing_table_strong_ll_1_impl_1(cleaned_grammar, start_symbol)
         end
     end
+    """
+        SymbolGraphs::Module
+
+    Parse-tree-related functionality.
+    """
     module SymbolGraphs
         export
             parse, unparse,
@@ -435,7 +460,7 @@ module ParseUnparse
         Return the identity of a new node of a symbol graph.
         """
         mutable struct SymbolGraphNodeIdentity end
-        const Vec = ((@isdefined Memory) ? Memory : Vector){SymbolGraphNodeIdentity}
+        const Vec = ((@isdefined Memory) ? Memory : Vector){SymbolGraphNodeIdentity}  # performance optimization: use `Memory` when available!
         const empty_vector = Vec(undef, 0)  # used for allocation-free tree traversal and other optimizations
         function make_node_vec(elements::Vararg{SymbolGraphNodeIdentity})
             len = length(elements)
@@ -453,7 +478,7 @@ module ParseUnparse
         """
             SymbolGraphRootless{GrammarSymbolKind, Token}()::SymbolGraphRootless{GrammarSymbolKind, Token}
 
-        Return a graph whose nodes are symbols of a formal grammar.
+        Return a graph whose nodes are symbols of a context-free grammar.
         """
         struct SymbolGraphRootless{GrammarSymbolKind, Token}
             node_to_grammar_symbol_kind::Dict{SymbolGraphNodeIdentity, GrammarSymbolKind}
@@ -469,7 +494,7 @@ module ParseUnparse
         """
             SymbolGraphRooted(root::SymbolGraphNodeIdentity, graph::SymbolGraphRootless)::SymbolGraphRooted
 
-        Return a graph whose nodes are symbols of a formal grammar, with `root` as the root.
+        Return a graph whose nodes are symbols of a context-free grammar, with `root` as the root.
 
         Intended to be used as a parse tree or an abstract syntax tree.
         """
@@ -486,7 +511,7 @@ module ParseUnparse
         """
             root_symbol_kind(::SymbolGraphRooted)
 
-        Returns the kind of the root node as a grammar symbol.
+        Return the kind of the root node as a grammar symbol.
         """
         function root_symbol_kind(tree::SymbolGraphRooted)
             tree.graph.node_to_grammar_symbol_kind[tree.root]
@@ -494,7 +519,7 @@ module ParseUnparse
         """
             root_is_terminal(::SymbolGraphRooted)::Bool
 
-        Predicate, tells if the (root) node of the parse tree is a terminal symbol.
+        Predicate, tell if the (root) node of the parse tree is a terminal symbol.
         """
         function root_is_terminal(tree::SymbolGraphRooted)
             root = tree.root
@@ -505,7 +530,7 @@ module ParseUnparse
         """
             root_is_childless(::SymbolGraphRooted)::Bool
 
-        Predicate, tells if the (root) node of the parse tree is a leaf node/childless.
+        Predicate, tell if the (root) node of the parse tree is a leaf node/childless.
         """
         function root_is_childless(tree::SymbolGraphRooted)
             root_is_terminal(tree) ||
@@ -514,7 +539,7 @@ module ParseUnparse
         """
             root_token(::SymbolGraphRooted)
 
-        Returns the token of a terminal symbol.
+        Return the token of a terminal symbol.
         """
         function root_token(tree::SymbolGraphRooted)
             tree.graph.terminal_node_to_token[tree.root]
@@ -522,7 +547,7 @@ module ParseUnparse
         """
             root_children(::SymbolGraphRooted)
 
-        Returns an iterator of `SymbolGraphRooted` elements.
+        Return an iterator of `SymbolGraphRooted` elements.
         """
         function root_children(tree::SymbolGraphRooted)
             graph = tree.graph
@@ -540,7 +565,7 @@ module ParseUnparse
         """
             new_terminal_symbol!(kinds::Dict{SymbolGraphNodeIdentity}, tokens::Dict{SymbolGraphNodeIdentity}, kind, token)::SymbolGraphNodeIdentity
 
-        Forms a terminal symbol from `kind` and `token`, registering it with `kinds` and `tokens`, and returns the new symbol.
+        Form a terminal symbol from `kind` and `token`, registering it with `kinds` and `tokens`, and returns the new symbol.
         """
         function new_terminal_symbol!(
             kinds::Dict{SymbolGraphNodeIdentity, GrammarSymbolKind},
@@ -804,6 +829,11 @@ module ParseUnparse
             root_children(tree)
         end
     end
+    """
+        AbstractParserIdents::Module
+
+    Interface for declaring a concrete parser implementation.
+    """
     module AbstractParserIdents
         export AbstractParserIdent, get_lexer, get_token_grammar, get_token_parser, get_parser
         using ..SymbolGraphs: SymbolGraphs
