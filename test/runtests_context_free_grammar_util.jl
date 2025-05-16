@@ -1,6 +1,8 @@
 using ParseUnparse.ContextFreeGrammarUtil
 using Test
 
+const copy_with_deduplicated_rules_identity = ContextFreeGrammarUtil.copy_with_deduplicated_rules_identity
+
 @testset "`ContextFreeGrammarUtil`" begin
     @testset "trivial" begin
         empty_language_grammar_clean = Dict{Char, Set{Vector{Char}}}()
