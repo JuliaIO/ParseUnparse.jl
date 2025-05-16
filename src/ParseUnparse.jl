@@ -882,7 +882,7 @@ module ParseUnparse
             (:is_done, :extra, :opaque), Tuple{Bool, Extra, TokenIteratorStateOpaque{Character, OptionalCharacterIteratorState}},
         } where {Extra, Character, OptionalCharacterIteratorState <: Union{Tuple{}, Tuple{Optional}}}
         function token_iterator_state_init_opaque(::Type{Character}) where {Character}
-            (0, IOBuffer(; read = false), Optional{Character}(), ())
+            (Int64(0), IOBuffer(; read = false), Optional{Character}(), ())
         end
         function token_iterator_state_init(::Type{Character}, extra) where {Character}
             opaque = token_iterator_state_init_opaque(Character)
@@ -901,10 +901,10 @@ module ParseUnparse
             * Assuming the character iterator state type stays the same after each iteration!
             """
             optional_character_iterator_state::Optional{CharacterIteratorState}
-            read_character_count::Int
+            read_character_count::Int64
             const buffer::IOBuffer
             const extra::Extra
-            function LexerState(oc::Optional, it, os::Optional, rcc::Int, buffer::IOBuffer, extra)
+            function LexerState(oc::Optional, it, os::Optional, rcc::Int64, buffer::IOBuffer, extra)
                 new{eltype(oc), typeof(it), eltype(os), typeof(extra)}(oc, it, os, rcc, buffer, extra)
             end
         end
@@ -949,7 +949,7 @@ module ParseUnparse
                     lexer_state.optional_most_recently_read_character = C()
                     lexer_state.optional_character_iterator_state = S()
                 else
-                    lexer_state.read_character_count += 1
+                    lexer_state.read_character_count += true
                     let (c, s) = iter
                         lexer_state.optional_most_recently_read_character = C(c)
                         lexer_state.optional_character_iterator_state = S(s)

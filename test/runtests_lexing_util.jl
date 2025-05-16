@@ -40,11 +40,11 @@ using Test
     end
     @test let extra = nothing, t = token_iterator_state_init(Char, extra)
         ls = only(lexer_state_new(t.opaque, extra, "a"))
-        0 === @inferred lexer_state_get_consumed_character_count(ls)
+        Int64(0) === @inferred lexer_state_get_consumed_character_count(ls)
     end
     @test let extra = nothing, t = token_iterator_state_init(Char, extra)
         ls = only(lexer_state_new(t.opaque, extra, "a"))
         lexer_state_consume!(ls)
-        1 === @inferred lexer_state_get_consumed_character_count(ls)
+        Int64(1) === @inferred lexer_state_get_consumed_character_count(ls)
     end
 end
