@@ -81,7 +81,7 @@ julia> (tree, error_status) = parser("())");
 julia> isempty(error_status)  # the parser rejects the unbalanced string
 false
 
-julia> using AbstractTrees: print_tree  # let's see the parse tree!
+julia> using AbstractTrees: print_tree  # let's see a nontrivial parse tree!
 
 julia> function print_tree_map(io::IO, tree)
            g = tree.graph
