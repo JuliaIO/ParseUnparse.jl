@@ -6,7 +6,7 @@ module ParseUnparse
             defined::Bool
             v::P
             function Optional{P}() where {P}
-                new{P}(false, )
+                new{P}(false)
             end
             function Optional{P}(v::P) where {P}
                 new{P}(true, v)
