@@ -39,7 +39,7 @@ function AbstractParserIdents.get_lexer(::DyckParserId)  # trivial tokenizer
     end
 end
 
-function AbstractParserIdents.get_token_grammar(::DyckParserId)  # a simple LL(1) grammar for the Dyck language, with a single nonterminal and two production rules
+function AbstractParserIdents.get_token_grammar(::DyckParserId)  # an LL(1) grammar for the Dyck language, with a single nonterminal and two production rules
     start_symbol = 'S'
     rules = (
         ('S' => Set(([], ['(', 'S', ')', 'S']))),
