@@ -1,7 +1,7 @@
 # ParseUnparse
 
-[![Build Status](https://github.com/nsajko/ParseUnparse.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/nsajko/ParseUnparse.jl/actions/workflows/CI.yml?query=branch%3Amain)
-[![Coverage](https://codecov.io/gh/nsajko/ParseUnparse.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/nsajko/ParseUnparse.jl)
+[![Build Status](https://github.com/JuliaIO/ParseUnparse.jl/actions/workflows/CI.yml/badge.svg?branch=main)](https://github.com/JuliaIO/ParseUnparse.jl/actions/workflows/CI.yml?query=branch%3Amain)
+[![Coverage](https://codecov.io/gh/JuliaIO/ParseUnparse.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/JuliaIO/ParseUnparse.jl)
 [![Package version](https://juliahub.com/docs/General/ParseUnparse/stable/version.svg)](https://juliahub.com/ui/Packages/General/ParseUnparse)
 [![Package dependencies](https://juliahub.com/docs/General/ParseUnparse/stable/deps.svg)](https://juliahub.com/ui/Packages/General/ParseUnparse?t=2)
 [![PkgEval](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/P/ParseUnparse.svg)](https://JuliaCI.github.io/NanosoldierReports/pkgeval_badges/P/ParseUnparse.html)
@@ -15,9 +15,9 @@ Some dependent packages:
 
 * Implementations for specific formats:
 
-    * JSON: [ParseUnparseJSON](https://github.com/nsajko/ParseUnparseJSON.jl)
+    * JSON: [ParseUnparseJSON](https://github.com/JuliaIO/ParseUnparseJSON.jl)
 
-    * WKT-CRS: [ParseUnparseWKTCRS](https://github.com/nsajko/ParseUnparseWKTCRS.jl)
+    * WKT-CRS: [ParseUnparseWKTCRS](https://github.com/JuliaIO/ParseUnparseWKTCRS.jl)
 
 ## Usage example: a parser for the *Dyck language*
 
