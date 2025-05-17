@@ -32,19 +32,23 @@ function string_to_toks(s::String)
     Iterators.map(f, s)
 end
 
+function get_root_symbol_kind(tree)
+    root_symbol_kind(tree.graph)
+end
+
 @testset "implement the AbstractTrees interface" begin
     @testset "example_string: $(example.string)" for example ∈ dyck_language_examples
         @test let toks = string_to_toks(example.string)
             (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
-            example.leaves == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.Leaves(tree)))
+            example.leaves == @inferred collect(Char, Iterators.map(get_root_symbol_kind, AbstractTrees.Leaves(graph_as_tree(tree))))
         end
         @test let toks = string_to_toks(example.string)
             (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
-            example.preorder == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.PreOrderDFS(tree)))
+            example.preorder == @inferred collect(Char, Iterators.map(get_root_symbol_kind, AbstractTrees.PreOrderDFS(graph_as_tree(tree))))
         end
         @test let toks = string_to_toks(example.string)
             (tree, _) = SymbolGraphs.parse(dyck_language_parser, toks)
-            example.postorder == @inferred collect(Char, Iterators.map(root_symbol_kind, AbstractTrees.PostOrderDFS(tree)))
+            example.postorder == @inferred collect(Char, Iterators.map(get_root_symbol_kind, AbstractTrees.PostOrderDFS(graph_as_tree(tree))))
         end
     end
 end
