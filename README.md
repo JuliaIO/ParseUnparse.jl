@@ -9,7 +9,7 @@
 
 Given a context-free grammar, parse input data to get a parse tree. Supports unparsing, with perfect roundtripping, depending on the implementation for the specific format.
 
-The parse tree type implements the [AbstractTrees](https://github.com/JuliaCollections/AbstractTrees.jl) interface.
+Implements the [AbstractTrees](https://github.com/JuliaCollections/AbstractTrees.jl) interface.
 
 Some dependent packages:
 
@@ -84,16 +84,17 @@ false
 julia> using AbstractTrees: print_tree  # let's see the parse tree!
 
 julia> function print_tree_map(io::IO, tree)
-           kind = root_symbol_kind(tree)
-           if root_is_terminal(tree)
-               show(io, (kind, root_token(tree)))  # a terminal symbol may have extra info (although it's just `nothing` in this example)
+           g = tree.graph
+           kind = root_symbol_kind(g)
+           if root_is_terminal(g)
+               show(io, (kind, root_token(g)))  # a terminal symbol may have extra info (although it's just `nothing` in this example)
            else
                show(io, kind)  # a nonterminal symbol just has its symbol kind
            end
        end
 print_tree_map (generic function with 1 method)
 
-julia> print_tree(print_tree_map, stdout, parser("(()())")[1]; maxdepth = 100)
+julia> print_tree(print_tree_map, stdout, graph_as_tree(parser("(()())")[1]); maxdepth = 100)
 'S'
 ├─ ('(', nothing)
 ├─ 'S'

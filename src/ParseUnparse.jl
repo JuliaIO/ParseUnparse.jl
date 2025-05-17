@@ -441,6 +441,7 @@ module ParseUnparse
     module SymbolGraphs
         export
             parse, unparse,
+            graph_as_tree,
             SymbolGraphNodeIdentity, make_node_vec,
             SymbolGraphRootless,
             SymbolGraphRooted,
@@ -825,8 +826,22 @@ module ParseUnparse
             end
             (ret, error_status)
         end
-        function AbstractTrees.children(tree::SymbolGraphRooted)
-            root_children(tree)
+        struct AsTree{Graph <: SymbolGraphRooted}
+            graph::Graph
+            function AsTree(graph::SymbolGraphRooted)
+                new{typeof(graph)}(graph)
+            end
+        end
+        """
+            graph_as_tree(graph::SymbolGraphRooted)
+
+        Wrap to assume the graph is a tree. The return type implements the AbstractTrees.jl interface.
+        """
+        function graph_as_tree(graph::SymbolGraphRooted)
+            AsTree(graph)
+        end
+        function AbstractTrees.children(tree::AsTree)
+            Iterators.map(graph_as_tree, root_children(tree.graph))
         end
     end
     """
