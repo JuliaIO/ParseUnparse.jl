@@ -981,6 +981,9 @@ module ParseUnparse
         function lexer_state_is_empty(lexer_state::LexerState)
             isempty(lexer_state.optional_most_recently_read_character)
         end
+        function lexer_state_destroy_most_recently_read_character!(lexer_state::LexerState)
+            lexer_state.optional_most_recently_read_character = typeof(lexer_state.optional_most_recently_read_character)()
+        end
         function lexer_state_advance!(lexer_state::LexerState)
             optional_state = lexer_state.optional_character_iterator_state
             C = typeof(lexer_state.optional_most_recently_read_character)
@@ -991,7 +994,7 @@ module ParseUnparse
             if !isempty(optional_state)
                 iter = iterate(lexer_state.character_iterator, only(optional_state))
                 if iter === nothing
-                    lexer_state.optional_most_recently_read_character = C()
+                    lexer_state_destroy_most_recently_read_character!(lexer_state)
                     lexer_state.optional_character_iterator_state = S()
                 else
                     lexer_state.read_character_count += true
@@ -1012,7 +1015,7 @@ module ParseUnparse
             oc = lexer_state.optional_most_recently_read_character
             optional_state = lexer_state.optional_character_iterator_state
             rcc = lexer_state.read_character_count
-            lexer_state.optional_most_recently_read_character = typeof(oc)()
+            lexer_state_destroy_most_recently_read_character!(lexer_state)
             lexer_state.optional_character_iterator_state = typeof(optional_state)()
             buffer = lexer_state.buffer
             opaque = (rcc, buffer, oc, (optional_state,))
@@ -1036,7 +1039,7 @@ module ParseUnparse
             if !isempty(oc)
                 print(lexer_state.buffer, only(oc))
             end
-            lexer_state.optional_most_recently_read_character = typeof(oc)()
+            lexer_state_destroy_most_recently_read_character!(lexer_state)
             oc
         end
     end
