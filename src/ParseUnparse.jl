@@ -44,6 +44,30 @@ module ParseUnparse
         function Base.iterate(::Optional, ::Any)
             nothing
         end
+        function convert_from_other_vector_eltype(::Type{Optional{T}}, ::Type) where {T}
+            T
+        end
+        function convert_from_other_vector_eltype(::Type{Optional}, ::Type{T}) where {T}
+            T
+        end
+        function convert_from_other_vector(::Type{O}, vec::AbstractVector) where {O <: Optional}
+            if 1 < length(vec)
+                throw(ArgumentError("got vector with more than one element, too long"))
+            end
+            T = convert_from_other_vector_eltype(O, eltype(vec))
+            Op = Optional{T}
+            if isempty(vec)
+                Op()
+            else
+                Op(only(vec))
+            end
+        end
+        function Base.convert(::Type{Optional{T}}, vec::AbstractVector) where {T}
+            convert_from_other_vector(Optional{T}, vec)
+        end
+        function Base.convert(::Type{Optional}, vec::AbstractVector)
+            convert_from_other_vector(Optional, vec)
+        end
     end
     """
         ContextFreeGrammarUtil::Module
