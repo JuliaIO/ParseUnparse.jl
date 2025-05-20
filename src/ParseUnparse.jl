@@ -945,7 +945,7 @@ module ParseUnparse
         end
     end
     module LexingUtil
-        export TokenIteratorState, token_iterator_state_init, lexer_state_new, lexer_state_get_extra, lexer_state_get_consumed_character_count, lexer_state_destroy!, lexer_state_peek!, lexer_state_consume!
+        export TokenIteratorState, token_iterator_state_init, lexer_state_simple_new, lexer_state_new, lexer_state_get_extra, lexer_state_get_consumed_character_count, lexer_state_destroy!, lexer_state_peek!, lexer_state_consume!
         using ..Optionals
         const TokenIteratorStateOpaque = Tuple{
             Int64, IOBuffer, Optional{Character}, OptionalCharacterIteratorState,
@@ -963,6 +963,30 @@ module ParseUnparse
                 extra,
                 opaque,
             )
+        end
+        mutable struct LexerStateSimple{Character, CharacterIterator, CharacterIteratorState}
+            optional_most_recently_read_character::Optional{Character}
+            const character_iterator::CharacterIterator
+            """
+            * If empty, the input is exhausted.
+
+            * Assuming the character iterator state type stays the same after each iteration!
+            """
+            optional_character_iterator_state::Optional{CharacterIteratorState}
+            function LexerStateSimple(oc::AbstractVector, it, os::AbstractVector)
+                new{eltype(oc), typeof(it), eltype(os)}(oc, it, os)
+            end
+        end
+        function lexer_state_simple_new(character_iterator)
+            iter = iterate(character_iterator)
+            if iter === nothing
+                ()
+            else
+                ls = let (e, s) = iter
+                    LexerStateSimple(Optional(e), character_iterator, Optional(s))
+                end
+                (ls,)
+            end
         end
         mutable struct LexerState{Character, CharacterIterator, CharacterIteratorState, Extra}
             optional_most_recently_read_character::Optional{Character}
@@ -1005,13 +1029,13 @@ module ParseUnparse
         function lexer_state_get_extra(lexer_state::LexerState)
             lexer_state.extra
         end
-        function lexer_state_is_empty(lexer_state::LexerState)
+        function lexer_state_is_empty(lexer_state::Union{LexerStateSimple, LexerState})
             isempty(lexer_state.optional_most_recently_read_character)
         end
-        function lexer_state_destroy_most_recently_read_character!(lexer_state::LexerState)
+        function lexer_state_destroy_most_recently_read_character!(lexer_state::Union{LexerStateSimple, LexerState})
             lexer_state.optional_most_recently_read_character = typeof(lexer_state.optional_most_recently_read_character)()
         end
-        function lexer_state_advance!(lexer_state::LexerState)
+        function lexer_state_advance!(lexer_state::Union{LexerStateSimple, LexerState})
             optional_state = lexer_state.optional_character_iterator_state
             C = typeof(lexer_state.optional_most_recently_read_character)
             S = typeof(optional_state)
@@ -1024,7 +1048,9 @@ module ParseUnparse
                     lexer_state_destroy_most_recently_read_character!(lexer_state)
                     lexer_state.optional_character_iterator_state = S()
                 else
-                    lexer_state.read_character_count += true
+                    if lexer_state isa LexerState
+                        lexer_state.read_character_count += true
+                    end
                     let (c, s) = iter
                         lexer_state.optional_most_recently_read_character = C(c)
                         lexer_state.optional_character_iterator_state = S(s)
@@ -1049,7 +1075,7 @@ module ParseUnparse
             token_source = take!(buffer)
             (; opaque, token_source)
         end
-        function lexer_state_advance_if_possible!(lexer_state::LexerState)
+        function lexer_state_advance_if_possible!(lexer_state::Union{LexerStateSimple, LexerState})
             if lexer_state_is_empty(lexer_state)
                 lexer_state_advance!(lexer_state)
                 lexer_state_is_empty(lexer_state)
@@ -1057,13 +1083,13 @@ module ParseUnparse
                 false
             end
         end
-        function lexer_state_peek!(lexer_state::LexerState)
+        function lexer_state_peek!(lexer_state::Union{LexerStateSimple, LexerState})
             lexer_state_advance_if_possible!(lexer_state)
             lexer_state.optional_most_recently_read_character
         end
-        function lexer_state_consume!(lexer_state::LexerState)
+        function lexer_state_consume!(lexer_state::Union{LexerStateSimple, LexerState})
             oc = lexer_state_peek!(lexer_state)
-            if !isempty(oc)
+            if (lexer_state isa LexerState) && !isempty(oc)
                 print(lexer_state.buffer, only(oc))
             end
             lexer_state_destroy_most_recently_read_character!(lexer_state)

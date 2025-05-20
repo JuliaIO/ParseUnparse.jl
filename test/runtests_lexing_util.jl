@@ -47,4 +47,8 @@ using Test
         lexer_state_consume!(ls)
         Int64(1) === @inferred lexer_state_get_consumed_character_count(ls)
     end
+    @test () === lexer_state_simple_new("")
+    @test let (ls,) = lexer_state_simple_new("a")
+        'a' === only(@inferred lexer_state_peek!(ls))
+    end
 end
