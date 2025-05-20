@@ -14,6 +14,7 @@ using Test
     @test !(@inferred isempty(Optional(3)))
     @test iszero(@inferred length(Optional{Float32}()))
     @test isone(@inferred length(Optional(3)))
+    @test (@inferred Optional{Float32}(3)) isa Optional{Float32}
     @test [] == collect(Int, Optional{Number}())
     @test [3] == collect(Float32, Optional(3))
     @test_throws BoundsError Optional(3.0)[2]
