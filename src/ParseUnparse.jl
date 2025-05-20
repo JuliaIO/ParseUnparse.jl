@@ -730,7 +730,9 @@ module ParseUnparse
             parsing_table::AbstractDict{Tuple{GrammarSymbolKind, GrammarSymbolKind}, <:AbstractVector{GrammarSymbolKind}},
             debug::Bool,
             parsing_table_end_marker::AbstractDict{GrammarSymbolKind, <:AbstractVector{GrammarSymbolKind}},
-            iter_initial::Tuple{Tuple{Token, GrammarSymbolKind}, Any},
+            lookahead::Token,
+            lookahead_kind::GrammarSymbolKind,
+            iter_state,
             tokens_and_kinds,
         ) where {GrammarSymbolKind, Token}
             error_status_inner_type = Optional{Tuple{Token, GrammarSymbolKind}}
@@ -738,7 +740,6 @@ module ParseUnparse
             error_status = error_status_type()
             parse_tree_kinds = graph.node_to_grammar_symbol_kind
             parse_tree_tokens = graph.terminal_node_to_token
-            ((lookahead, lookahead_kind), iter_state) = iter_initial
             if debug
                 lookahead = lookahead::Token
                 lookahead_kind = lookahead_kind::GrammarSymbolKind
@@ -815,7 +816,9 @@ module ParseUnparse
                 parse_strong_ll_1_table_driven_end!(stack, graph, parsing_table_end_marker, debug)
             else
                 # nonempty input
-                parse_strong_ll_1_table_driven_with_lookahead!(stack, graph, parsing_table, debug, parsing_table_end_marker, iter_initial, tokens_and_kinds)
+                let (e, s) = iter_initial
+                    parse_strong_ll_1_table_driven_with_lookahead!(stack, graph, parsing_table, debug, parsing_table_end_marker, e..., s, tokens_and_kinds)
+                end
             end
             if debug && isempty(error_status) && !isempty(stack)
                 throw(debug_exception)
