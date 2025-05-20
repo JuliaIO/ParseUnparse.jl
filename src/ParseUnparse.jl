@@ -8,7 +8,7 @@ module ParseUnparse
             function Optional{P}() where {P}
                 new{P}(false)
             end
-            function Optional{P}(v::P) where {P}
+            function Optional{P}(v) where {P}
                 new{P}(true, v)
             end
         end
